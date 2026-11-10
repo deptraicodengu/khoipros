@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # khoiprOS
-#   launch.sh         bật, hoặc ẩn/hiện nếu đang chạy (gắn vào Super+O)
-#   launch.sh start   chỉ bật nếu chưa chạy (dùng khi đăng nhập)
-#   launch.sh lock    khoá màn hình có hiệu ứng (gắn vào Super+L)
-#   launch.sh wall    mở bảng chọn hình nền (gắn vào Super+W)
+#   launch.sh         start, or show/hide if already running (Super+O)
+#   launch.sh start   start only if not running (used at login)
+#   launch.sh lock    animated lock screen (Super+L)
+#   launch.sh wall    wallpaper picker (Super+W)
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PID=$(pgrep -f "python3 $DIR/main.py" | head -n1)
 if [ "$1" = "lock" ]; then
@@ -18,7 +18,7 @@ if [ "$1" = "wall" ]; then
 fi
 if [ -n "$PID" ]; then
     [ "$1" = "start" ] && exit 0
-    kill -SIGUSR1 "$PID"        # đang chạy → ẩn/hiện
+    kill -SIGUSR1 "$PID"        # running → show/hide
 else
     export GDK_BACKEND=wayland
     export WEBKIT_DISABLE_DMABUF_RENDERER=1

@@ -1,6 +1,6 @@
-// khoiprOS — bảng chọn hình nền (Super+W), chạy bằng quickshell (Qt Quick, vẽ bằng card đồ hoạ → mượt).
-// main.py mở bảng này và truyền cổng / mã API / ngôn ngữ / màu nhấn qua biến môi trường.
-// Ảnh xem trước lấy từ máy chủ nội bộ của khoiprOS (đã làm sẵn, lưu đệm).
+// khoiprOS — wallpaper picker (Super+W), runs in quickshell (Qt Quick, GPU-rendered → smooth).
+// main.py launches it and passes the port / API token / language / accent color via environment variables.
+// Thumbnails come from khoiprOS's local server (pre-generated and cached).
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -61,7 +61,7 @@ ShellRoot {
     function sig(a) { return a.map(x => x.i + ":" + x.name).join("|") }
 
     Component.onCompleted: {
-        // danh sách main.py quét sẵn → hiện ngay lập tức
+        // list pre-scanned by main.py → shows instantly
         let pre = null
         try { pre = JSON.parse(Quickshell.env("KHOIPROS_WALLS") || "null") } catch (e) {}
         if (pre && pre.length) {
@@ -69,7 +69,7 @@ ShellRoot {
             rebuild("")
             loading.visible = false
         }
-        // rồi hỏi lại máy chủ ở nền sau — chỉ vẽ lại nếu thư mục có ảnh mới / bớt ảnh
+        // then re-check with the server in the background — redraw only if images were added or removed
         request("GET", "/api/wallpapers", null, function (j) {
             const fresh = (j && j.items) ? j.items : []
             loading.visible = false
@@ -102,7 +102,7 @@ ShellRoot {
             NumberAnimation { id: fadeIn; target: stage; property: "opacity"; to: 1; duration: 200; easing.type: Easing.OutCubic }
             NumberAnimation { id: fadeOut; target: stage; property: "opacity"; to: 0; duration: 180; easing.type: Easing.InCubic; onFinished: Qt.quit() }
 
-            // nền trong suốt: chỉ tối dần quanh dải ảnh + ánh màu nhấn
+            // transparent background: darkened only around the strip + accent glow
             Rectangle {
                 anchors.fill: parent
                 gradient: Gradient {
@@ -121,7 +121,7 @@ ShellRoot {
                 opacity: 0.12
             }
 
-            // thứ · ngày · giờ
+            // weekday · date · time
             Column {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height * 0.06
@@ -185,7 +185,7 @@ ShellRoot {
                 }
             }
 
-            // dải ảnh: ảnh giữa thẳng mặt, hai bên nghiêng 3D quay vào giữa
+            // strip: center card faces forward, side cards tilt in 3D toward the center
             PathView {
                 id: view
                 anchors.left: parent.left; anchors.right: parent.right
@@ -266,7 +266,7 @@ ShellRoot {
                 }
             }
 
-            // thông tin ảnh đang chọn
+            // info about the selected image
             Column {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height * 0.55 + 140
@@ -321,7 +321,7 @@ ShellRoot {
                 }
             }
 
-            // bấm ra ngoài dải ảnh để đóng; lăn chuột để lướt
+            // click outside the strip to close; scroll to browse
             MouseArea {
                 anchors.fill: parent
                 z: -1
