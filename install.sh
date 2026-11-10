@@ -28,6 +28,10 @@ try: gi.require_version("WebKit2","4.1")
 except ValueError: gi.require_version("WebKit2","4.0")' 2>/dev/null || miss+=(webkit2gtk-4.1)
 python3 -c 'import cairo' 2>/dev/null || miss+=(python-cairo)
 for c in hyprlock playerctl cava quickshell; do command -v $c >/dev/null || miss+=($c); done
+# đặt hình nền cần awww (tên mới của swww) hoặc swww
+if ! { command -v awww-daemon || command -v swww-daemon; } >/dev/null 2>&1; then
+    if command -v pacman >/dev/null && pacman -Si awww >/dev/null 2>&1; then miss+=(awww); else miss+=(swww); fi
+fi
 command -v hyprctl >/dev/null || echo "   ! Không thấy hyprctl — khoiprOS chỉ chạy trên Hyprland"
 if [ ${#miss[@]} -gt 0 ]; then
     echo "   Thiếu: ${miss[*]}"
@@ -59,14 +63,15 @@ H="$HOME/.config/hypr"
 if grep -qs "kkkhoishell/launch.sh" "$H/hyprland.lua" "$H/hyprland.conf" "$H"/*.lua 2>/dev/null; then
     echo "==> Phím tắt khoiprOS đã có trong cấu hình Hyprland — giữ nguyên"
 elif ask "==> Thêm phím tắt (Super+O mở khoiprOS, Super+L khoá, Super+W đổi hình nền) và tự chạy khi đăng nhập?"; then
-    superl=1; superw=1
+    supero=1; superl=1; superw=1
+    grep -qsE '(SUPER|mainMod|\$mod)[^#]*(\+|,) *[oO] *("|,|\))' "$H/hyprland.conf" "$H"/*.lua 2>/dev/null && supero=0
     grep -qsE '(SUPER|mainMod|\$mod)[^#]*(\+|,) *[wW] *("|,|\))' "$H/hyprland.conf" "$H"/*.lua 2>/dev/null && superw=0
     grep -qsE '(SUPER|mainMod|\$mod)[^#]*(\+|,) *[lL] *("|,|\))' "$H/hyprland.conf" "$H"/*.lua 2>/dev/null && superl=0
     if [ -f "$H/hyprland.lua" ]; then
         F="$H/hyprland.lua"; cp "$F" "$F.khoipros-install.bak"
         {
             echo ""; echo "-- khoiprOS"
-            echo "hl.bind(\"SUPER + O\", hl.dsp.exec_cmd(\"$L\"))"
+            [ $supero = 1 ] && echo "hl.bind(\"SUPER + O\", hl.dsp.exec_cmd(\"$L\"))"
             [ $superl = 1 ] && echo "hl.bind(\"SUPER + L\", hl.dsp.exec_cmd(\"$L lock\"))"
             [ $superw = 1 ] && echo "hl.bind(\"SUPER + W\", hl.dsp.exec_cmd(\"$L wall\"))"
             echo "os.execute(\"$L start >/dev/null 2>&1 &\")"
@@ -75,13 +80,14 @@ elif ask "==> Thêm phím tắt (Super+O mở khoiprOS, Super+L khoá, Super+W �
         F="$H/hyprland.conf"; mkdir -p "$H"; [ -f "$F" ] && cp "$F" "$F.khoipros-install.bak"
         {
             echo ""; echo "# khoiprOS"
-            echo "bind = SUPER, O, exec, $L"
+            [ $supero = 1 ] && echo "bind = SUPER, O, exec, $L"
             [ $superl = 1 ] && echo "bind = SUPER, L, exec, $L lock"
             [ $superw = 1 ] && echo "bind = SUPER, W, exec, $L wall"
             echo "exec-once = $L start"
         } >> "$F"
     fi
     echo "   Đã thêm vào $F (bản cũ: $(basename "$F").khoipros-install.bak)"
+    [ $supero = 0 ] && echo "   Super+O đang dùng cho việc khác nên không gắn. Mở/ẩn khoiprOS:  $L"
     [ $superl = 0 ] && echo "   Super+L đang dùng cho việc khác nên không gắn. Muốn khoá có hiệu ứng: đổi lệnh đó thành  $L lock"
     [ $superw = 0 ] && echo "   Super+W đang dùng cho việc khác nên không gắn. Bảng chọn hình nền:  $L wall"
     true
