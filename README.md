@@ -14,7 +14,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deptraicodengu/khoipros/main
 
 Lệnh này tự làm hết:
 
-1. Kiểm tra và cài các gói cần thiết bằng pacman (hỏi bạn trước).
+1. Kiểm tra và cài các gói cần thiết (hỏi bạn trước): Arch (pacman), Debian/Ubuntu (apt), Fedora (dnf), openSUSE (zypper). Chưa có Hyprland thì đề nghị cài Hyprland trước. Arch là nơi dùng thử nhiều nhất; distro khác có thể thiếu quickshell/hyprlock/awww trong kho — khoiprOS vẫn chạy, chỉ thiếu phần đó.
 2. Tải khoiprOS về `~/.config/kkkhoishell`.
 3. Thêm phím tắt vào cấu hình Hyprland, hỗ trợ cả `hyprland.conf` lẫn `hyprland.lua`, có sao lưu:
    - **Super+O**: mở/ẩn khoiprOS.
@@ -68,7 +68,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/deptraicodengu/khoipros/main
 
 The installer does the following:
 
-1. Checks dependencies and offers to install them with pacman.
+1. Checks dependencies and offers to install them (pacman, apt, dnf or zypper). If Hyprland is missing it offers to install it first. Arch is the most tested; other distros may lack quickshell/hyprlock/awww in their repos — khoiprOS still runs without those parts.
 2. Installs khoiprOS to `~/.config/kkkhoishell`.
 3. Adds key bindings to `hyprland.conf` or `hyprland.lua`, with a backup:
    - **Super+O** opens or hides khoiprOS.

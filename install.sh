@@ -10,17 +10,62 @@ THREE_URL="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
 L="$DEST/launch.sh"
 ask() { local a; read -rp "$1 [Y/n] " a </dev/tty || a=y; [[ ! "$a" =~ ^[Nn] ]]; }
 
+# ---------- trình quản lý gói (Arch / Debian-Ubuntu / Fedora / openSUSE) ----------
+PM=""
+for p in pacman apt-get dnf zypper; do command -v $p >/dev/null && { PM=$p; break; }; done
+# tên gói theo từng distro (tên chung → tên thật; "-" = distro đó không có gói này)
+pkgname() {
+    case "$PM:$1" in
+        pacman:gi)      echo python-gobject ;;      apt-get:gi)      echo python3-gi ;;
+        dnf:gi)         echo python3-gobject ;;     zypper:gi)       echo python3-gobject ;;
+        pacman:gtk)     echo gtk3 ;;                apt-get:gtk)     echo gir1.2-gtk-3.0 ;;
+        dnf:gtk)        echo gtk3 ;;                zypper:gtk)      echo typelib-1_0-Gtk-3_0 ;;
+        pacman:layer)   echo gtk-layer-shell ;;     apt-get:layer)   echo gir1.2-gtklayershell-0.1 ;;
+        dnf:layer)      echo gtk-layer-shell ;;     zypper:layer)    echo typelib-1_0-GtkLayerShell-0_1 ;;
+        pacman:webkit)  echo webkit2gtk-4.1 ;;      apt-get:webkit)  echo gir1.2-webkit2-4.1 ;;
+        dnf:webkit)     echo webkit2gtk4.1 ;;       zypper:webkit)   echo typelib-1_0-WebKit2-4_1 ;;
+        pacman:cairo)   echo python-cairo ;;        apt-get:cairo)   echo python3-gi-cairo ;;
+        dnf:cairo)      echo python3-cairo ;;       zypper:cairo)    echo python3-gobject-cairo ;;
+        *)              echo "$1" ;;               # hyprland, hyprlock, playerctl, cava, quickshell, awww, swww, kitty
+    esac
+}
+avail() {
+    case "$PM" in
+        pacman)  pacman -Si "$1" >/dev/null 2>&1 ;;
+        apt-get) apt-cache show "$1" 2>/dev/null | grep -q '^Package:' ;;
+        dnf)     dnf -q info "$1" >/dev/null 2>&1 ;;
+        zypper)  zypper -q info "$1" 2>/dev/null | grep -q '^Name' ;;
+        *)       return 1 ;;
+    esac
+}
+# cài những gói có trong kho; gói không có thì báo để tự cài (không làm hỏng cả lượt cài)
+install_pkgs() {
+    local ok=() no=() n
+    for x in "$@"; do n=$(pkgname "$x"); if avail "$n"; then ok+=("$n"); else no+=("$n"); fi; done
+    [ ${#no[@]} -gt 0 ] && echo "   Kho gói của máy không có: ${no[*]} — bỏ qua (khoiprOS vẫn chạy, chỉ thiếu phần đó)"
+    [ ${#ok[@]} -eq 0 ] && return 0
+    echo "   Sẽ cài: ${ok[*]}"
+    case "$PM" in
+        pacman)  sudo pacman -S --needed "${ok[@]}" ;;
+        apt-get) sudo apt-get install -y "${ok[@]}" ;;
+        dnf)     sudo dnf install -y "${ok[@]}" ;;
+        zypper)  sudo zypper install -y "${ok[@]}" ;;
+    esac || echo "   ! Cài gói lỗi — cài tay các gói trên rồi chạy lại lệnh này"
+}
+
 # ---------- 0. cần Hyprland ----------
 if ! command -v hyprctl >/dev/null; then
     echo "khoiprOS là giao diện dành cho Hyprland — máy này chưa có Hyprland."
-    if command -v pacman >/dev/null && ask "==> Cài Hyprland bằng pacman bây giờ?"; then
-        sudo pacman -S --needed hyprland kitty
+    if [ -n "$PM" ] && avail hyprland && ask "==> Cài Hyprland bằng $PM bây giờ?"; then
+        install_pkgs hyprland kitty
         echo
-        echo "Đã cài Hyprland. Bước tiếp theo:"
+        echo "Bước tiếp theo:"
         echo "  1. Đăng xuất, ở màn hình đăng nhập chọn phiên 'Hyprland' (hoặc gõ  Hyprland  ở TTY)."
         echo "  2. Trong Hyprland, mở terminal (Super+Q) và chạy lại lệnh cài khoiprOS."
     else
-        echo "Cài Hyprland trước (https://wiki.hypr.land/Getting-Started/Installation/), rồi chạy lại lệnh này trong phiên Hyprland."
+        echo "Kho gói của máy không có sẵn Hyprland. Xem cách cài cho distro của bạn:"
+        echo "  https://wiki.hypr.land/Getting-Started/Installation/"
+        echo "rồi chạy lại lệnh này trong phiên Hyprland."
     fi
     exit 1
 fi
@@ -40,23 +85,28 @@ fi
 # ---------- 2. gói cần thiết ----------
 echo "==> Kiểm tra gói cần thiết"
 miss=()
-python3 -c 'import gi; gi.require_version("Gtk","3.0"); gi.require_version("GtkLayerShell","0.1")' 2>/dev/null || miss+=(python-gobject gtk3 gtk-layer-shell)
+python3 -c 'import gi; gi.require_version("Gtk","3.0"); gi.require_version("GtkLayerShell","0.1")' 2>/dev/null || miss+=(gi gtk layer)
 python3 -c 'import gi
 try: gi.require_version("WebKit2","4.1")
-except ValueError: gi.require_version("WebKit2","4.0")' 2>/dev/null || miss+=(webkit2gtk-4.1)
-python3 -c 'import cairo' 2>/dev/null || miss+=(python-cairo)
+except ValueError: gi.require_version("WebKit2","4.0")' 2>/dev/null || miss+=(webkit)
+python3 -c 'import cairo; import gi; gi.require_foreign("cairo")' 2>/dev/null || miss+=(cairo)
 for c in hyprlock playerctl cava quickshell; do command -v $c >/dev/null || miss+=($c); done
 # đặt hình nền cần awww (tên mới của swww) hoặc swww
 if ! { command -v awww-daemon || command -v swww-daemon; } >/dev/null 2>&1; then
-    if command -v pacman >/dev/null && pacman -Si awww >/dev/null 2>&1; then miss+=(awww); else miss+=(swww); fi
+    if [ -n "$PM" ] && avail awww; then miss+=(awww); else miss+=(swww); fi
 fi
 if [ ${#miss[@]} -gt 0 ]; then
-    echo "   Thiếu: ${miss[*]}"
-    if command -v pacman >/dev/null; then
-        ask "   Cài bằng pacman ngay?" && sudo pacman -S --needed "${miss[@]}"
+    if [ -n "$PM" ]; then
+        echo "   Thiếu: $(for x in "${miss[@]}"; do printf '%s ' "$(pkgname "$x")"; done)"
+        ask "   Cài bằng $PM ngay?" && install_pkgs "${miss[@]}"
     else
-        echo "   Hãy cài các gói trên bằng trình quản lý gói của bạn."
+        echo "   Thiếu: ${miss[*]} — hãy cài bằng trình quản lý gói của bạn."
     fi
+fi
+# 4 thứ bắt buộc — thiếu thì khoiprOS không mở được
+if ! python3 -c 'import gi; gi.require_version("Gtk","3.0"); gi.require_version("GtkLayerShell","0.1")' 2>/dev/null; then
+    echo "✗ Chưa có Python GObject + GTK3 + gtk-layer-shell — khoiprOS không chạy được. Cài các gói này rồi chạy lại."
+    exit 1
 fi
 
 # ---------- 3. chép file ----------
