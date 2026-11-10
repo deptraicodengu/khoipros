@@ -1,0 +1,8 @@
+settings.json
+three.min.js
+__pycache__/
+*.bak
+*.log
+log.txt
+hyprlock.conf
+lock-planet.png
