@@ -1,5 +1,7 @@
 # khoiprOS
 
+**English** · [Tiếng Việt](README.vi.md)
+
 An OS-style desktop shell for **Hyprland**: a 3D planet home screen, a status bar, quick controls, a music player with a cava visualizer, a full-screen power menu, glass-shatter window effects, and animated boot and lock screens.
 
 > khoipr**OS** = khoipro + OS
