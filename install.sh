@@ -10,6 +10,24 @@ THREE_URL="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
 L="$DEST/launch.sh"
 ask() { local a; read -rp "$1 [Y/n] " a </dev/tty || a=y; [[ ! "$a" =~ ^[Nn] ]]; }
 
+# ---------- 0. cần Hyprland ----------
+if ! command -v hyprctl >/dev/null; then
+    echo "khoiprOS là giao diện dành cho Hyprland — máy này chưa có Hyprland."
+    if command -v pacman >/dev/null && ask "==> Cài Hyprland bằng pacman bây giờ?"; then
+        sudo pacman -S --needed hyprland kitty
+        echo
+        echo "Đã cài Hyprland. Bước tiếp theo:"
+        echo "  1. Đăng xuất, ở màn hình đăng nhập chọn phiên 'Hyprland' (hoặc gõ  Hyprland  ở TTY)."
+        echo "  2. Trong Hyprland, mở terminal (Super+Q) và chạy lại lệnh cài khoiprOS."
+    else
+        echo "Cài Hyprland trước (https://wiki.hypr.land/Getting-Started/Installation/), rồi chạy lại lệnh này trong phiên Hyprland."
+    fi
+    exit 1
+fi
+if [ -z "$HYPRLAND_INSTANCE_SIGNATURE" ]; then
+    echo "   ! Bạn không ở trong phiên Hyprland — vẫn cài, nhưng khoiprOS chỉ chạy khi bạn đăng nhập vào Hyprland."
+fi
+
 # ---------- 1. lấy mã nguồn (chạy từ thư mục clone, hoặc tự tải từ GitHub) ----------
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
 if [ ! -f "$SRC/main.py" ] || [ ! -f "$SRC/index.html" ]; then
@@ -32,7 +50,6 @@ for c in hyprlock playerctl cava quickshell; do command -v $c >/dev/null || miss
 if ! { command -v awww-daemon || command -v swww-daemon; } >/dev/null 2>&1; then
     if command -v pacman >/dev/null && pacman -Si awww >/dev/null 2>&1; then miss+=(awww); else miss+=(swww); fi
 fi
-command -v hyprctl >/dev/null || echo "   ! Không thấy hyprctl — khoiprOS chỉ chạy trên Hyprland"
 if [ ${#miss[@]} -gt 0 ]; then
     echo "   Thiếu: ${miss[*]}"
     if command -v pacman >/dev/null; then
@@ -94,7 +111,7 @@ elif ask "==> Thêm phím tắt (Super+O mở khoiprOS, Super+L khoá, Super+W �
 fi
 
 # ---------- 5. chạy luôn ----------
-if [ -n "$WAYLAND_DISPLAY" ] && command -v hyprctl >/dev/null; then
+if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ] && [ -n "$WAYLAND_DISPLAY" ]; then
     pkill -f "python3 $DEST/main.py" 2>/dev/null; sleep 0.5
     bash "$L" start
     echo "==> khoiprOS đang khởi động…"
