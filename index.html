@@ -548,7 +548,8 @@ const NAMED_COLORS = [
   ['Magenta', '#ff00ff'], ['Hồng đậm', '#ff1493'], ['Hồng', '#ff69b4'], ['Hồng phấn', '#ffc0cb'], ['Nâu', '#8b4513'], ['Bạc', '#c0c0c0'],
   ['Xám', '#808080'], ['Trắng', '#ffffff'],
 ];
-const clsMatch = (win, app) => { const w = String(win || '').toLowerCase(), a = String(app || '').toLowerCase(); return !!a && (w === a || w.endsWith('.' + a)); };
+const ownerName = () => (S.info && S.info.owner) || (ST && ST.info && ST.info.user) || 'khoiprOS';
+const clsMatch = (win, app) => { const w = String(win || '').toLowerCase(); return String(app || '').toLowerCase().split('|').some(a => (a = a.trim()) && (w === a || w.endsWith('.' + a))); };
 
 const ICONS = {
   sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
@@ -600,14 +601,19 @@ const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hid
 const DEFAULTS = {
   apps: [
     { id: 'terminal', name: 'Terminal', icon: '>_',  cmd: 'kitty',                          class: 'kitty',       alwaysNew: false },
+    { id: 'brave',    name: 'Brave',    icon: 'B',   cmd: 'brave || brave-browser || brave-browser-stable', class: 'brave-browser|brave', alwaysNew: false },
+    { id: 'firefox',  name: 'Firefox',  icon: 'F',   cmd: 'firefox',                        class: 'firefox|org.mozilla.firefox', alwaysNew: false },
+    { id: 'code',     name: 'Code',     icon: '{}',  cmd: 'code || code-oss || codium || flatpak run com.visualstudio.code', class: 'code|code-oss|code-url-handler|vscodium|com.visualstudio.code', alwaysNew: false },
+    { id: 'store',    name: 'Store',    icon: '⇩',   cmd: 'bazaar || flatpak run io.github.kolunmi.Bazaar || gnome-software || plasma-discover || pamac-manager', class: 'io.github.kolunmi.bazaar|org.gnome.software|org.kde.discover|org.manjaro.pamac.manager|pamac-manager', alwaysNew: false },
     { id: 'neovim',   name: 'Neovim',   icon: '</>', cmd: 'kitty --class kkk-nvim -e nvim', class: 'kkk-nvim',    alwaysNew: false },
     { id: 'audio',    name: 'Audio',    icon: '◎',   cmd: 'pavucontrol',                    class: 'pavucontrol', alwaysNew: false },
     { id: 'control',  name: 'Control',  icon: '⟎',   cmd: 'kitty --class kkk-btop -e btop', class: 'kkk-btop',    alwaysNew: false },
     { id: 'rofi',     name: 'Rofi',     icon: '⚲',   cmd: 'rofi -show drun',                class: 'rofi',        alwaysNew: true },
   ],
   ignore: ['kkkhoishell'],
+  rev: 2,
   appearance: { lang: 'vi', accent: '#70a1ff', hyprBorder: false, autoAccent: false, contrastPlanet: true, wallpaper: '', bootSplash: true, bootEvery: true, osWallpaper: '/usr/share/hypr/wall1.png', wallDir: '', extraColor: '#ffa502', colorful: true, panelOpacity: 0.65, blur: 16, dim: 0.5, uiScale: 1, showCard: true, showLabels: true },
-  planet: { show: true, autoRotate: true, icons: true, fps: 60, pauseCovered: true, coveredFps: 0, rotateSpeed: 1, orbitSpeed: 1, cameraDistance: 32, size: 4, showRings: true, ringWidth: 0.14, stars: false, labelsBehind: 'dim', perWindow: false },
+  planet: { show: true, autoRotate: true, icons: true, fps: 60, pauseCovered: true, coveredFps: 0, rotateSpeed: 1, orbitSpeed: 1, cameraDistance: 32, size: 4, coreOpacity: 0.55, showRings: true, ringWidth: 0.2, stars: false, labelsBehind: 'dim', perWindow: false },
   bar: { cpu: true, ram: true, volume: true, battery: true, clock: true, clock24: true, seconds: true, wsCount: 5 },
   behavior: { floatWindows: true, hideOnLaunch: true, escToHide: true, numberKeys: true, autoShowWhenEmpty: true },
   display: { nightTemp: 4500 },
@@ -616,7 +622,7 @@ const DEFAULTS = {
   tools: { network: 'nm-connection-editor', bluetooth: 'blueman-manager', audio: 'pavucontrol' },
   perf: { shareWeb: false },
   colors: { core: '#70a1ff', ring: '#70a1ff', ring2: '#ffa502', shards: '#1aa3c4', cava: '#70a1ff', border: '#70a1ff', bar: '#080d13', glass: '#121629' },
-  info: { cpu: 'AMD Ryzen 9 9950X', gpu: 'NVIDIA GeForce RTX 5090', owner: 'Khoi', device: "Khoi's Hyprland" },
+  info: { cpu: '', gpu: '', owner: '', device: '' },
   cava: { enabled: true, bar: true, ring: true, bars: 48, sens: 1 },
   fx: { enabled: true, sound: true, soundVol: 0.35, fps: 120, hideWin: true, revealMs: 150, pieces: 40, shatterMs: 1400, assembleMs: 600, maxRest: 140, colorMode: 'wall' },
 };
@@ -688,6 +694,12 @@ const EN = {
 "Hiện giây": "Show seconds",
 "Hiện nhãn hành tinh": "Show planet labels",
 "Độ dày quỹ đạo": "Orbit thickness",
+"Độ đục quả cầu": "Planet opacity",
+"Hiện trên trang này và dòng bản quyền · để trống = tên tài khoản máy": "Shown on this page and in the copyright line · leave empty to use your account name",
+"Để trống = tên máy": "Leave empty to use the hostname",
+"Nhiều lựa chọn: lệnh cách nhau bằng": "Alternatives: separate commands with",
+", class cách nhau bằng": ", classes with",
+"— khoiprOS dùng lệnh đầu tiên có trên máy.": "— khoiprOS uses the first command that is installed.",
 "Kéo để đổi cỡ": "Drag to resize",
 "Cửa sổ nổi, kéo thả tự do": "Floating windows, free drag",
 "Cửa sổ không bị xếp ô dính cứng nữa. Di chuyển: Super + kéo chuột trái · Đổi cỡ: Super + kéo chuột phải. Chỉ trong khoiprOS — đổi sang etea/Hyprland thì xếp ô lại như cũ": "Windows are no longer locked into tiles. Move: Super + left-drag · Resize: Super + right-drag. Only in khoiprOS — switching to etea/Hyprland tiles them again",
@@ -1028,6 +1040,7 @@ const EN_RX = [
   [/^Chuyển tới (.+)$/, (m, a) => `Switch to ${a}`],
   [/^Chào (.+)! Bạn đã là nhà phát triển khoiprOS$/, (m, a) => `Hi ${a}! You are now a khoiprOS developer`],
   [/^Chưa cài công cụ cho '(.+)'$/, (m, a) => `No tool installed for '${a}'`],
+  [/^Máy chưa cài (.+)$/, (m, a) => `${a} is not installed`],
   [/^Chưa cài (.+)$/, (m, a) => `${trS(a)} not installed`],
   [/^Còn (\d+) lần chạm nữa…$/, (m, a) => `${a} more taps…`],
   [/^Mở (.+) → hành tinh mới$/, (m, a) => `Open ${a} → new planet`],
@@ -1609,7 +1622,7 @@ const CC_TILES = [
 let ccDrag = false;
 function renderCC() {
   const p = $('#pop-cc'), s = ST.stats || {}, I = ST.info || {};
-  p.innerHTML = `<div class="kp-h"><b>Điều khiển nhanh</b><span>${esc((S.info && S.info.owner) || '')}</span></div><div class="kp-tiles"></div>
+  p.innerHTML = `<div class="kp-h"><b>Điều khiển nhanh</b><span>${esc(ownerName())}</span></div><div class="kp-tiles"></div>
     <div class="kp-sl" data-k="volume">${ic('vol')}<input type="range" min="0" max="100" step="1" aria-label="Âm lượng"><output></output></div>
     <div class="kp-sl" data-k="brightness">${ic('sun')}<input type="range" min="1" max="100" step="1" aria-label="Độ sáng"><output></output></div>
     <div class="kp-mini" hidden></div>
@@ -1713,7 +1726,7 @@ function srgbLab(r, g, b) {
   return [116 * h(Y) - 16, 500 * (h(X) - h(Y)), 200 * (h(Y) - h(Z))];
 }
 // Độ mờ thật của lõi/quỹ đạo khi bật "nổi bật trên hình nền" (applyScene dùng cùng giá trị)
-const KP_VIS = { wire: 0.75, inner: 0.26, ringA: 0.9, ringB: 0.7 };
+const KP_VIS = { wire: 0.9, inner: 0.55, ringA: 1, ringB: 0.9 };
 function contrastPlanet(d, W, H) {
   // Nền thật phía sau quả cầu = hình nền đã phủ lớp làm tối (#dim) → tính trên màu sau khi phủ
   const dim = +((S.appearance && S.appearance.dim) ?? 0.25), V = [5, 7, 15];
@@ -1828,7 +1841,7 @@ window.kkkBoot = (force) => {
     const diag = Math.random() < 0.5;
     for (const rz of diag ? [0, 180] : [90, 270]) tris.push({ x, y, rz });
   }
-  const back = el('div', 'kboot-bg'), mark = el('div', 'kboot-mark', `<b>khoipr<em>OS</em></b><span>${esc(((S.info && S.info.owner) || 'Khoi'))} · ${KOS.ver} ${KOS.code}</span>`);
+  const back = el('div', 'kboot-bg'), mark = el('div', 'kboot-mark', `<b>khoipr<em>OS</em></b><span>${esc(ownerName())} · ${KOS.ver} ${KOS.code}</span>`);
   mark.style.top = (cy + R + 26) + 'px';
   if (!force) { back.style.transition = 'none'; back.classList.add('on'); }   // tấm phủ tối đã có sẵn → hiện nền ngay, không mờ dần
   document.body.append(back, mark);
@@ -2099,7 +2112,7 @@ let kpArmed = null, kpArmT = 0;
 function openPowerFull() {
   const p = $('#kpower'); kpArmed = null;
   p.innerHTML = `<div class="kpw-row">${KP_POWER.map(([a, l, i], k) => `<button class="kpw-tri ${k % 2 ? 'up' : 'down'}${a === 'shutdown' ? ' danger' : ''}" data-a="${a}"><span>${ic(i)}<b>${l}</b></span></button>`).join('')}</div>
-    <div class="kpw-msg" aria-live="polite"></div><div class="kpw-foot">${esc((S.info && S.info.owner) || 'Khoi')} · khoipr<em>OS</em> · Esc để đóng</div>`;
+    <div class="kpw-msg" aria-live="polite"></div><div class="kpw-foot">${esc(ownerName())} · khoipr<em>OS</em> · Esc để đóng</div>`;
   p.hidden = false; requestAnimationFrame(() => p.classList.add('on'));
   p.querySelectorAll('.kpw-tri').forEach(b => b.onclick = e => { e.stopPropagation(); powerPick(b); });
 }
@@ -2279,6 +2292,7 @@ function renderItem(it) {
 
 function renderAppsEditor() {
   const wrap = el('div');
+  wrap.appendChild(el('div', 'note', 'Nhiều lựa chọn: lệnh cách nhau bằng <code>||</code>, class cách nhau bằng <code>|</code> — khoiprOS dùng lệnh đầu tiên có trên máy.'));
   wrap.appendChild(el('div', 'note', 'Đây là các app mặc định nằm trên <b>vòng trong</b> và trong lưới Ứng dụng. <b>Class</b> là class cửa sổ Hyprland (xem bằng <code>hyprctl clients | grep class</code>) — dùng để nhận biết app đang chạy. Mọi cửa sổ khác sẽ tự thành hành tinh ở <b>vòng ngoài</b>.'));
   wrap.appendChild(el('div', 'app-head', '<span>Icon</span><span>Tên</span><span>Lệnh mở</span><span>Class</span><span></span><span></span>'));
   const list = el('div', 'apps-ed'); wrap.appendChild(list);
@@ -2322,7 +2336,7 @@ function renderSessionButtons() {
 /* ---------- khoipros OS: trang Giới thiệu (kiểu "Thiết bị của tôi") ---------- */
 const KOS = { ver: '1.0.0', code: 'Orbit', build: 'KP1.0.20261110' };
 function renderOS() {
-  const I = ST.info || {}, own = (S.info && S.info.owner) || 'Khoi', dev = (S.info && S.info.device) || "Khoi's Hyprland";
+  const I = ST.info || {}, own = ownerName(), dev = (S.info && S.info.device) || (I.host ? `${I.host}` : 'Hyprland');
   const w = el('div', 'kos');
   const specs = [['CPU', I.cpu], ['GPU', I.gpu], ['RAM', I.ram], ['Màn hình', I.display || `${screen.width}×${screen.height}`],
     ['Kernel', I.kernel], ['Nền tảng', (I.distro || 'Arch Linux') + ' · Hyprland' + (I.hypr ? ' ' + I.hypr : '')]];
@@ -2380,8 +2394,8 @@ const SECTIONS = [
         w.append(b); return w; } },
     { t: 'toggle', p: 'appearance.bootEvery', label: 'Chiếu màn hình khởi động mỗi lần bật giao diện', desc: 'Tắt: chỉ chiếu lần đầu sau khi đăng nhập' },
     { t: 'heading', label: 'Chủ sở hữu' },
-    { t: 'text', p: 'info.owner', label: 'Tên chủ sở hữu', desc: 'Hiện trên trang này và dòng bản quyền', ph: 'Khoi' },
-    { t: 'text', p: 'info.device', label: 'Tên thiết bị', ph: "Khoi's Hyprland" },
+    { t: 'text', p: 'info.owner', label: 'Tên chủ sở hữu', desc: 'Hiện trên trang này và dòng bản quyền · để trống = tên tài khoản máy', ph: (ST.info && ST.info.user) || '' },
+    { t: 'text', p: 'info.device', label: 'Tên thiết bị', desc: 'Để trống = tên máy', ph: (ST.info && ST.info.host) || '' },
   ] },
   { id: 'colors', name: 'Màu sắc', icon: 'palette', items: [
     { t: 'toggle', p: 'appearance.autoAccent', label: 'Tự động theo hình nền', desc: 'Mọi màu bên dưới tự lấy từ hình nền, đổi hình nền là đổi theo. Tắt đi để tự chọn từng màu.' },
@@ -2430,6 +2444,7 @@ const SECTIONS = [
     { t: 'range', p: 'planet.cameraDistance', label: 'Khoảng cách camera', desc: 'Cũng chỉnh bằng Ctrl + lăn chuột', min: 24, max: 48, step: 1 },
     { t: 'range', p: 'planet.size', label: 'Kích thước lõi', min: 2, max: 6, step: 0.25 },
     { t: 'toggle', p: 'planet.showRings', label: 'Hiện vòng quỹ đạo' },
+    { t: 'range', p: 'planet.coreOpacity', label: 'Độ đục quả cầu', min: 0.1, max: 0.95, step: 0.05, fmt: v => Math.round(v * 100) + '%' },
     { t: 'range', p: 'planet.ringWidth', label: 'Độ dày quỹ đạo', min: 0.04, max: 0.4, step: 0.02, fmt: v => (v / 0.05).toFixed(1) + '×' },
     { t: 'toggle', p: 'planet.stars', label: 'Nền sao', desc: 'Thêm sao lấp lánh phía sau (tốn GPU hơn một chút)' },
     { t: 'select', p: 'planet.labelsBehind', label: 'Nhãn khi nằm sau lõi', opts: [['dim', 'Làm mờ'], ['hide', 'Ẩn'], ['show', 'Hiện bình thường']] },
@@ -2511,8 +2526,8 @@ const SECTIONS = [
     { t: 'buttons', items: [{ label: 'Thử hiệu ứng vỡ', icon: 'zap', cmd: { type: 'fxtest' } }, { label: 'Dọn hết mảnh', icon: 'trash', cmd: { type: 'fxclear' } }] },
   ] },
   { id: 'about', name: 'Hệ thống', icon: 'info', items: [
-    { t: 'text', p: 'info.cpu', label: 'Tên CPU hiển thị', desc: 'Để trống để dùng tên thật của máy', ph: 'AMD Ryzen 9 9950X' },
-    { t: 'text', p: 'info.gpu', label: 'Tên GPU hiển thị', desc: 'Để trống để dùng tên thật của máy', ph: 'NVIDIA GeForce RTX 5090' },
+    { t: 'text', p: 'info.cpu', label: 'Tên CPU hiển thị', desc: 'Để trống để dùng tên thật của máy', ph: (ST.info && ST.info.cpu) || '' },
+    { t: 'text', p: 'info.gpu', label: 'Tên GPU hiển thị', desc: 'Để trống để dùng tên thật của máy', ph: (ST.info && ST.info.gpu) || '' },
     { t: 'custom', render: renderAbout },
   ] },
 ];
@@ -2643,6 +2658,12 @@ function initScene() {
   };
   ringA = mkRing(R_APP, TILT_A, 0.6);
   ringB = mkRing(R_EXTRA, TILT_B, 0.35);
+  // quầng sáng mềm quanh mỗi quỹ đạo → vòng rõ màu, nổi trên mọi hình nền
+  const mkGlow = ring => {
+    const g = new THREE.Mesh(ringGeo(ring.userData.r, clamp(+S.planet.ringWidth || 0.2, 0.03, 0.4) * GLOW_K, 1.6), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false }));
+    g.userData = { r: ring.userData.r, w: S.planet.ringWidth, k: GLOW_K }; ring.add(g); ring.userData.glow = g; return g;
+  };
+  mkGlow(ringA); mkGlow(ringB);
 
   const sp = new Float32Array(900 * 3);
   for (let i = 0; i < 900; i++) {
@@ -2678,22 +2699,27 @@ function resetCam(full) {
   camera.position.set(0, d * 0.33, d); camera.lookAt(0, 0, 0);
   planetGroup.rotation.set(0, 0, 0);
 }
-function ringGeo(r, w) { w = clamp(+w || 0.14, 0.03, 0.4); return new THREE.RingGeometry(r - w / 2, r + w / 2, 200); }
+const GLOW_K = 4;
+function ringGeo(r, w, maxW) { w = clamp(+w || 0.2, 0.03, maxW || 0.4); return new THREE.RingGeometry(r - w / 2, r + w / 2, 200); }
 function setRingWidth(m, w) {
   if (!m || m.userData.w === w) return;
   m.geometry.dispose(); m.geometry = ringGeo(m.userData.r, w); m.userData.w = w;
+  const g = m.userData.glow;
+  if (g) { g.geometry.dispose(); g.geometry = ringGeo(g.userData.r, clamp(+w || 0.2, 0.03, 0.4) * GLOW_K, 1.6); g.userData.w = w; }
 }
 function applyScene() {
   const P = S.planet, A = S.appearance;
   const C = S.colors || {};
   const vis = A.autoAccent && A.contrastPlanet !== false;
   ringA.material.color.set(C.ring || A.accent); ringB.material.color.set(vis && C.ring2 ? C.ring2 : A.extraColor);
-  ringA.material.opacity = vis ? KP_VIS.ringA : 0.6; ringB.material.opacity = vis ? KP_VIS.ringB : 0.35;
-  coreWire.material.opacity = vis ? KP_VIS.wire : 0.45; coreInner.material.opacity = vis ? KP_VIS.inner : 0.16;
+  ringA.material.opacity = vis ? KP_VIS.ringA : 0.95; ringB.material.opacity = vis ? KP_VIS.ringB : 0.75;
+  ringA.userData.glow.material.color.copy(ringA.material.color); ringB.userData.glow.material.color.copy(ringB.material.color);
+  coreWire.material.opacity = vis ? KP_VIS.wire : 0.75;
+  coreInner.material.opacity = clamp(+(P.coreOpacity ?? 0.55), 0.1, 0.95);   // quả cầu đục hơn → nổi rõ trên hình nền
   ringA.visible = ringB.visible = P.showRings;
   setRingWidth(ringA, P.ringWidth); setRingWidth(ringB, P.ringWidth);
   coreInner.material.color.set(C.core || A.accent);
-  coreWire.material.color.set(C.core || A.accent).multiplyScalar(vis ? 1 : 0.55);
+  coreWire.material.color.set(C.core || A.accent).multiplyScalar(vis ? 1 : 0.8);
   coreGroup.scale.setScalar(P.size / 4);
   stars.visible = P.stars;
   P.cameraDistance = clamp(P.cameraDistance, 24, 48);
@@ -2739,6 +2765,8 @@ let iconVerSeen = 0;
 function iconKeys(n) {
   if (n.extra) return [n.cls, n.name];
   const a = S.apps.find(x => x.id === n.id) || {};
+  const k = (ST.appKeys || {})[n.id];   // app có nhiều lựa chọn lệnh/class → main.py chọn sẵn tên đúng trên máy
+  if (k && k.length) return [...k, a.name];
   return [a.class, (a.cmd || '').split(/\s+/)[0], a.name, a.id];
 }
 function loadIcon(n) {

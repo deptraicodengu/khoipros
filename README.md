@@ -66,7 +66,7 @@ If your distro lacks an optional package, install it from that project's own ins
 
 ## Features
 
-- **3D planet home screen:** every open window is a planet with the app's real icon. Hide or show the planet with the **Planet** button at the bottom.
+- **3D planet home screen:** pinned apps (Terminal, Brave, Firefox, Code, Store… — edit them in *Settings › Apps*) sit on the inner orbit and launch with one click; every other open window becomes a planet on the outer orbit. All planets use the app's real icon. Hide or show the planet with the **Planet** button at the bottom.
 - **Status bar:** workspaces, now playing (cover art + cava), network, volume, battery, clock.
 - **Quick controls:** Wi-Fi, Bluetooth, volume, brightness, power profile, do not disturb.
 - **Glass-shatter effects** when windows open and close.

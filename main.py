@@ -13,7 +13,7 @@ Thay đổi so với bản cũ:
 """
 import os, sys, re, json, signal, subprocess, threading, shutil, secrets, socket, time, glob, copy
 import urllib.request, urllib.parse, warnings, faulthandler
-import random, math, colorsys
+import random, math, colorsys, shlex
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 faulthandler.enable()                  # nếu crash (segfault) thì in vị trí ra log
@@ -55,15 +55,20 @@ def log(*a):
 DEFAULT_SETTINGS = {
     "apps": [
         {"id": "terminal", "name": "Terminal", "icon": ">_",  "cmd": "kitty",                          "class": "kitty",       "alwaysNew": False},
+        {"id": "brave",    "name": "Brave",    "icon": "B",   "cmd": "brave || brave-browser || brave-browser-stable", "class": "brave-browser|brave", "alwaysNew": False},
+        {"id": "firefox",  "name": "Firefox",  "icon": "F",   "cmd": "firefox",                        "class": "firefox|org.mozilla.firefox", "alwaysNew": False},
+        {"id": "code",     "name": "Code",     "icon": "{}",  "cmd": "code || code-oss || codium || flatpak run com.visualstudio.code", "class": "code|code-oss|code-url-handler|vscodium|com.visualstudio.code", "alwaysNew": False},
+        {"id": "store",    "name": "Store",    "icon": "⇩",   "cmd": "bazaar || flatpak run io.github.kolunmi.Bazaar || gnome-software || plasma-discover || pamac-manager", "class": "io.github.kolunmi.bazaar|org.gnome.software|org.kde.discover|org.manjaro.pamac.manager|pamac-manager", "alwaysNew": False},
         {"id": "neovim",   "name": "Neovim",   "icon": "</>", "cmd": "kitty --class kkk-nvim -e nvim", "class": "kkk-nvim",    "alwaysNew": False},
         {"id": "audio",    "name": "Audio",    "icon": "◎",   "cmd": "pavucontrol",                    "class": "pavucontrol", "alwaysNew": False},
         {"id": "control",  "name": "Control",  "icon": "⟎",   "cmd": "kitty --class kkk-btop -e btop", "class": "kkk-btop",    "alwaysNew": False},
         {"id": "rofi",     "name": "Rofi",     "icon": "⚲",   "cmd": "rofi -show drun",                "class": "rofi",        "alwaysNew": True},
     ],
     "ignore": ["kkkhoishell"],
+    "rev": 0,
     "appearance": {"lang": "vi", "accent": "#70a1ff", "hyprBorder": False, "autoAccent": False, "contrastPlanet": True, "wallpaper": "", "bootSplash": True, "bootEvery": True, "osWallpaper": "/usr/share/hypr/wall1.png", "wallDir": "", "extraColor": "#ffa502", "colorful": True, "panelOpacity": 0.65, "blur": 16,
                    "dim": 0.5, "uiScale": 1, "showCard": True, "showLabels": True},
-    "planet": {"show": True, "autoRotate": True, "icons": True, "fps": 60, "pauseCovered": True, "coveredFps": 0, "rotateSpeed": 1, "orbitSpeed": 1, "cameraDistance": 32, "size": 4, "ringWidth": 0.14,
+    "planet": {"show": True, "autoRotate": True, "icons": True, "fps": 60, "pauseCovered": True, "coveredFps": 0, "rotateSpeed": 1, "orbitSpeed": 1, "cameraDistance": 32, "size": 4, "ringWidth": 0.2, "coreOpacity": 0.55,
                "showRings": True, "stars": False, "labelsBehind": "dim", "perWindow": False},
     "bar": {"cpu": True, "ram": True, "volume": True, "battery": True, "clock": True, "clock24": True, "seconds": True, "wsCount": 5},
     "behavior": {"floatWindows": True, "hideOnLaunch": True, "escToHide": True, "numberKeys": True, "autoShowWhenEmpty": True},
@@ -73,7 +78,7 @@ DEFAULT_SETTINGS = {
     "tools": {"network": "nm-connection-editor", "bluetooth": "blueman-manager", "audio": "pavucontrol"},
     "perf": {"shareWeb": False},
     "colors": {"core": "#70a1ff", "ring": "#70a1ff", "ring2": "#ffa502", "shards": "#1aa3c4", "cava": "#70a1ff", "border": "#70a1ff", "bar": "#080d13", "glass": "#121629"},
-    "info": {"cpu": "AMD Ryzen 9 9950X", "gpu": "NVIDIA GeForce RTX 5090", "owner": "Khoi", "device": "Khoi's Hyprland"},
+    "info": {"cpu": "", "gpu": "", "owner": "", "device": ""},   # để trống = tự nhận (CPU/GPU thật, tên người dùng, tên máy)
     "cava": {"enabled": True, "bar": True, "ring": True, "bars": 48, "sens": 1.0},
     "fx": {"enabled": True, "sound": True, "soundVol": 0.35, "fps": 120, "hideWin": True, "revealMs": 150, "pieces": 40, "shatterMs": 1400, "assembleMs": 600, "maxRest": 140, "colorMode": "wall"},
 }
@@ -152,15 +157,41 @@ REOPEN = ""
 ARG_OPEN = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--open=")), "")
 
 
+SETTINGS_REV = 2
+NEW_APPS_REV2 = ("brave", "firefox", "code", "store")
+
+
+def migrate(s):
+    """Nâng cấp cài đặt cũ một lần: thêm app mặc định mới (Brave, Firefox, Code, Store) nếu chưa có,
+    quỹ đạo dày hơn nếu vẫn để độ dày mặc định cũ."""
+    if int(s.get("rev") or 0) >= SETTINGS_REV:
+        return s
+    have = {a["id"] for a in s["apps"]}
+    add = [copy.deepcopy(a) for a in DEFAULT_SETTINGS["apps"] if a["id"] in NEW_APPS_REV2 and a["id"] not in have]
+    if add:
+        pos = 1 if s["apps"] and s["apps"][0]["id"] == "terminal" else 0
+        s["apps"][pos:pos] = add
+    if abs(float(s["planet"].get("ringWidth") or 0.14) - 0.14) < 1e-6:
+        s["planet"]["ringWidth"] = 0.2
+    s["rev"] = SETTINGS_REV
+    try:
+        save_settings(s)
+        log("cài đặt: đã thêm app mặc định mới:", ", ".join(a["name"] for a in add) or "(không)")
+    except Exception as e:
+        log("không lưu được cài đặt đã nâng cấp:", e)
+    return s
+
+
 def load_settings():
     try:
         with open(SETTINGS_FILE, encoding="utf-8") as f:
-            return sanitize(json.load(f))
+            return migrate(sanitize(json.load(f)))
     except FileNotFoundError:
         d = copy.deepcopy(DEFAULT_SETTINGS)
         # cài lần đầu: máy để tiếng Việt thì dùng tiếng Việt, còn lại dùng tiếng Anh
         loc = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or os.environ.get("LANG") or "").lower()
         d["appearance"]["lang"] = "vi" if loc.startswith("vi") else "en"
+        d["rev"] = SETTINGS_REV
         return d
     except Exception as e:
         log("settings.json lỗi, dùng mặc định:", e)
@@ -820,7 +851,7 @@ def write_lock_conf():
     A = SETTINGS["appearance"]
     en = A.get("lang") == "en"
     acc = A.get("accent") if re.match(r"^#[0-9a-fA-F]{6}$", A.get("accent") or "") else "#70a1ff"
-    owner = re.sub(r"[#$\n\r'\"\\]", "", (SETTINGS.get("info") or {}).get("owner") or "Khoi")[:40]
+    owner = re.sub(r"[#$\n\r'\"\\]", "", (SETTINGS.get("info") or {}).get("owner") or default_owner())[:40]
     wp = None
     try:
         wp = find_wallpaper()
@@ -1160,9 +1191,64 @@ def apply_hypr_colors(acc, on, persist=False):
 
 
 def cls_match(win_cls, app_cls):
-    w, a = (win_cls or "").lower(), (app_cls or "").lower()
+    w = (win_cls or "").lower()
+    # nhiều class cách nhau bởi "|" (vd. "code|code-oss|vscodium");
     # "pavucontrol" khớp cả "org.pulseaudio.pavucontrol" (tên class mới của pavucontrol 6.x)
-    return bool(a) and (w == a or w.endswith("." + a))
+    for a in (app_cls or "").lower().split("|"):
+        a = a.strip()
+        if a and (w == a or w.endswith("." + a)):
+            return True
+    return False
+
+
+_FP_DIRS = ("/var/lib/flatpak/app", os.path.expanduser("~/.local/share/flatpak/app"))
+
+
+def _cmd_exists(c):
+    """Lệnh có chạy được trên máy không (kể cả app flatpak đã cài)."""
+    try:
+        argv = shlex.split(c)
+    except ValueError:
+        return False
+    while argv and "=" in argv[0] and not argv[0].startswith(("/", "=")):
+        argv = argv[1:]   # bỏ biến môi trường kiểu FOO=1
+    if not argv:
+        return False
+    if argv[0] == "flatpak" and len(argv) >= 3 and argv[1] == "run":
+        appid = next((x for x in argv[2:] if not x.startswith("-")), "")
+        return has("flatpak") and any(os.path.isdir(os.path.join(d, appid)) for d in _FP_DIRS)
+    return has(argv[0])
+
+
+_APPCMD = {}
+
+
+def app_cmd(app):
+    """Lệnh mở app. Nhiều lựa chọn cách nhau bởi "||" → lấy lựa chọn đầu tiên có trên máy (None nếu không có)."""
+    raw = app.get("cmd") or ""
+    alts = [x.strip() for x in raw.split("||") if x.strip()]
+    if len(alts) <= 1:
+        return alts[0] if alts else None
+    hit = _APPCMD.get(raw)
+    if hit and time.time() - hit[1] < 15:   # nhớ 15 giây (cài app mới thì tự nhận ra)
+        return hit[0]
+    c = next((c for c in alts if _cmd_exists(c)), None)
+    _APPCMD[raw] = (c, time.time())
+    return c
+
+
+def app_icon_keys(app):
+    """Tên để tìm icon cho app ghim: lệnh thật sẽ chạy + các class."""
+    keys = []
+    c = app_cmd(app)
+    if c:
+        try:
+            argv = shlex.split(c)
+            keys.append(argv[-1] if argv[0] == "flatpak" else os.path.basename(argv[0]))
+        except ValueError:
+            pass
+    keys += [x.strip() for x in (app.get("class") or "").split("|") if x.strip()]
+    return list(dict.fromkeys(keys))[:4]
 
 
 CAPS = {
@@ -1177,8 +1263,20 @@ CAPS = {
 }
 
 
+def default_owner():
+    """Tên hiện trên màn khoá / khởi động khi chưa đặt: tên thật trong tài khoản máy, không có thì tên đăng nhập."""
+    try:
+        import pwd
+        pw = pwd.getpwuid(os.getuid())
+        real = (pw.pw_gecos or "").split(",")[0].strip()
+        return real or pw.pw_name.capitalize()
+    except Exception:
+        return (os.environ.get("USER") or "khoiprOS").capitalize()
+
+
 def read_info():
-    info = {"host": socket.gethostname(), "kernel": os.uname().release, "gpu": None, "distro": None, "cpu": None}
+    info = {"host": socket.gethostname(), "kernel": os.uname().release, "gpu": None, "distro": None, "cpu": None,
+            "user": default_owner()}
     try:
         with open("/etc/os-release") as f:
             for line in f:
@@ -1440,6 +1538,7 @@ def build_state():
         "weather": POLLER.weather if SETTINGS["weather"]["enabled"] else None,
         "wallpaper": wallpaper_info() if SETTINGS["appearance"].get("autoAccent") else None,
         "iconVer": icons_ver(),
+        "appKeys": {a["id"]: app_icon_keys(a) for a in S["apps"] if "|" in (a.get("class") or "") or "||" in (a.get("cmd") or "")},
     }
 
 
@@ -1474,6 +1573,9 @@ def handle_cmd(msg):
             return res(False, f"Không có app id '{msg.get('id')}'")
         if not app["cmd"]:
             return res(False, f"App {app['name']} chưa có lệnh mở")
+        cmd = app_cmd(app)
+        if not cmd:
+            return res(False, f"Máy chưa cài {app['name']}")
         if not msg.get("forceNew") and not app["alwaysNew"]:
             wins = [c for c in hypr_clients() if cls_match(c.get("class", ""), app["class"])]
             if wins:
@@ -1481,8 +1583,8 @@ def handle_cmd(msg):
                 ok, out = dispatch("focuswindow", "address:" + wins[0]["address"])
                 return res(ok, f"Chuyển tới {app['name']}", out)
         maybe_hide()
-        ok, out = dispatch("exec", app["cmd"])
-        return res(ok, f"hyprctl dispatch exec {app['cmd']}", out)
+        ok, out = dispatch("exec", cmd)
+        return res(ok, f"Mở {app['name']}", out)
 
     if t in ("focus", "close"):
         addr = str(msg.get("address", ""))

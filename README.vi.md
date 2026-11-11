@@ -66,7 +66,7 @@ Nếu distro của bạn thiếu gói tuỳ chọn nào, cài gói đó theo hư
 
 ## Tính năng
 
-- **Màn hình chính hành tinh 3D:** mỗi cửa sổ đang mở là một hành tinh mang icon thật của app. Ẩn/hiện quả cầu bằng nút **Quả cầu** ở góc dưới.
+- **Màn hình chính hành tinh 3D:** các app ghim (Terminal, Brave, Firefox, Code, Store… — sửa trong *Cài đặt › Ứng dụng*) nằm trên vòng trong, bấm một cái là mở; mọi cửa sổ khác thành hành tinh ở vòng ngoài. Hành tinh nào cũng mang icon thật của app. Ẩn/hiện quả cầu bằng nút **Quả cầu** ở góc dưới.
 - **Thanh trạng thái:** workspace, nhạc đang phát (ảnh bìa + cava), mạng, âm lượng, pin, đồng hồ.
 - **Điều khiển nhanh:** Wi-Fi, Bluetooth, âm lượng, độ sáng, chế độ nguồn, không làm phiền.
 - **Hiệu ứng vỡ kính** khi mở và đóng cửa sổ.
